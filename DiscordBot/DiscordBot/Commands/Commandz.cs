@@ -27,32 +27,45 @@ namespace DiscordBot.commands
             await ctx.Channel.SendMessageAsync(result.ToString());
         }*/
 
+        private readonly BotContext _db;
+
+        public Commandz(BotContext db)
+        {
+            _db = db;
+        }
+
         [Command("help")]
         public async Task Help(CommandContext ctx)
         {
             await ctx.Channel.SendMessageAsync("```Commands: \n !new - Creates new profile \n !test - Tests bot```");
         }
-        [Command("test")]
-        public async Task Test(CommandContext ctx)
-        {
-            await ctx.Channel.SendMessageAsync("Test");
-        }
 
         [Command("new")]
         public async Task New(CommandContext ctx)
         {
-            var profile = new Profile
-            {
-                Name = ctx.User.Username,
-                DiscordID = ctx.User.Id,
-                Backpack = "Wood",
-                BackpackSpace = 100,
-                Money = 100,
-                Level = 0,
-                Experience = 0
-            };
+            var existingProfile = _db.Profile.FirstOrDefault(p => p.DiscordID == ctx.User.Id);
 
-            await ctx.Channel.SendMessageAsync("Profile created");
+            if (existingProfile == null)
+            {
+                var profile = new Profile
+                {
+                    Name = ctx.User.Username,
+                    DiscordID = ctx.User.Id,
+                    BackpackSpace = 100,
+                    Money = 100,
+                    Level = 0,
+                    Experience = 0
+                };
+
+                _db.Profile.Add(profile);
+                await _db.SaveChangesAsync();
+
+                await ctx.Channel.SendMessageAsync("Profile created");
+            }
+            else
+            {
+                await ctx.Channel.SendMessageAsync("Profile already exists!");
+            }
         }
     }
 }
